@@ -10,6 +10,9 @@ WAIT_FRAMES = $03
 PREV_VBLANK = $10
 WRITE_ADDR = $20
 
+CH_MASK = $30
+PREV_CHMASK = $31
+
 _INITIAL_VGM_PTR_LSB = <vgmdata
 _INITIAL_VGM_PTR_MSB = >vgmdata
 
@@ -31,12 +34,10 @@ _INITIAL_VGM_PTR_MSB = >vgmdata
 	lda	#$00
 	sta	$2000
 	sta	$2001
-	lda	#$88
-	sta	$2000
 	
 ; 各種初期化
-	lda #$00
-	sta PREV_VBLANK
+	;lda #$00
+	;sta PREV_VBLANK
 	lda #_INITIAL_VGM_PTR_LSB
 	sta VGM_PTR_LSB
 	lda #_INITIAL_VGM_PTR_MSB
@@ -53,6 +54,9 @@ _INITIAL_VGM_PTR_MSB = >vgmdata
 	sta $8000
 	lda VGM_PTR_BANK
 	sta $8001
+	
+	lda	#$80
+	sta	$2000
 	
 	jmp Main
 .endproc
@@ -75,7 +79,50 @@ mainloop:
 
 .segment "STARTUP"
 .proc	NMIMain
-dec WAIT_FRAMES
+
+	lda		$4016
+	ora		#$01
+	sta		$4016
+	and		#$FE
+	sta		$4016
+	lda		$4016
+	and		#$01
+	sta		CH_MASK
+	lda		$4016
+	and		#$01
+	asl		a
+	ora		CH_MASK
+	sta		CH_MASK
+	lda		$4016
+	and		#$01
+	asl		a
+	asl		a
+	ora		CH_MASK
+	sta		CH_MASK
+	lda		$4016
+	and		#$01
+	asl		a
+	asl		a
+	asl		a
+	ora		CH_MASK
+	sta		CH_MASK
+	lda		$4016
+	and		#$01
+	asl		a
+	asl		a
+	asl		a
+	asl		a
+	ora		CH_MASK
+	eor		#$FF
+	sta		CH_MASK
+	cmp		PREV_CHMASK
+	beq		LFF96
+	lda		CH_MASK
+	sta		$4015
+LFF96:	
+	sta	PREV_CHMASK
+
+	dec WAIT_FRAMES
 	ldx WAIT_FRAMES
 	beq @next
 	rti
@@ -90,12 +137,16 @@ dec WAIT_FRAMES
 	
 	jsr incAddr
 	lda (VGM_PTR_LSB), y
-	sta WRITE_ADDR
+	tax
+	stx WRITE_ADDR
 	
 	jsr incAddr
 	lda (VGM_PTR_LSB), y
+	cpx #$15
+	bne @LFFBA
+	and CH_MASK
+@LFFBA:
 	sta (WRITE_ADDR), y
-	
 	jsr incAddr
 	jmp	@next
 	
@@ -150,5 +201,5 @@ dec WAIT_FRAMES
 ; データ
 .segment "VGMDATA"
 vgmdata:
-	.byte $00
-	;.incbin	"famicom_0.bin"
+	;.byte $00
+	.incbin	"famicom_0.bin"

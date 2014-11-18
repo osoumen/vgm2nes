@@ -243,6 +243,13 @@ int main(int argc, const char * argv[])
                 // data End
                 WaitSamples();
                 break;
+            case 0x67:
+            {
+                //int dataType = vgmData[vgmPtr+2];
+                int dataSize = vgmData[vgmPtr+3] + (vgmData[vgmPtr+4] << 8) + (vgmData[vgmPtr+5] << 16) + (vgmData[vgmPtr+6] << 24);
+                cmdLen = dataSize+7;
+                break;
+            }
             default:
                 if ((opCode & 0xf0) == 0x70) {
                     waitSamples += (opCode & 0x0f) + 1;
